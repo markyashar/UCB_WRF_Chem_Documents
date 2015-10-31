@@ -1,0 +1,761 @@
+# Modify prep_chem_sources.inp to generate intermediate netcdf files for 
+# different times, dates, and domains.
+cd /scratch/scratchdirs/yashar/Prep_sources_chem_cptec_wrf/bin
+emacs prep_chem_sources.inp &
+# (For example):
+#    ihour=01,
+#    iday=17,
+#    imon=02,
+#    iyear=2006,
+# ...
+# NGRIDS   = 2,            # Number of grids to run
+./prep_chem_sources
+rm *.bin *.ctl *.gra *.vfm # or could choose not to delete *.ctl
+#Or ...
+cd $SCRATCH/PREP-CHEM-SRC-1.3.2_zl/bin/
+emacs prep_chem_sources.sh &  # modify this script as necessary
+emacs prep_chem_sources_script.sh &
+sh prep_chem_sources.sh & 
+
+# Output should be something like, e.g.:
+EDGAR-CO2_EMISSION-T-2006-02-06-020000-g1.nc
+EDGAR-CO2_EMISSION-T-2006-02-06-020000-g2.nc
+EDG41-CO2_ANT_EMISS_DIURN_ON-T-2006-02-09-110000-g1.nc
+# These plots can be displayed with ferret:
+module load ferret
+ferret
+use EDGAR-CO2_EMISSION-T-2006-02-14-080000-g1.nc   
+set region/L=1/K=1 
+fill co2_edgar,longitude,latitude
+go land_detail black overlay black black black black
+
+# Need to create met_em*d0[1,2]*.nc files for each day and domain separately
+# by running metgrid.exe:
+chmod -R ugo+rwx $SCRATCH/NARR/  
+cd $SCRATCH/NARR/
+mkdir feb1-28_06/
+cd feb1-28_06
+#Make sure all of the NARR data has already been downloaded
+# from http://rda.ucar.edu/datasets/ds608.0
+# Then, proceed through the web pages as follows:
+# DATA ACCESS -> Union of Available Products: regrouped 3-hourly
+# files -> Web File Listing ->Complete File List -> 3HRLY.2006 -> 
+# *.3D, *.flx, *.sfc -> Then download all of the selected files
+# via the perl download script, i.e., 'perl perl_download_script.pl <passwd>'. 
+# Then, "tar xvf NARRflx_200602_1724.tar", etc... Note that a password is
+# needed to access and download data. Password can be obtained easily via
+# free regitration.
+
+perl perl_download_script.pl 40A3HPBG &
+tar xvf NARRflx_200602_1724.tar
+tar NARR3D_200811_2527.tar
+# etc. Then, after everything has been un-tarred:
+rm *.tar
+
+
+
+# For now, all of the NARR data for February 2006 has been place in:
+# /scratch/scratchdirs/yashar/NARR/feb1-28_06
+
+# And data for November 2008 (SLC) has been placed in: 
+/scratch/scratchdirs/yashar/NARR/nov1-30_08
+
+# The lines below show what you would do if you wanted to break
+# down the WRF model runs into individual day simulation runs 
+# rather than a 1-month run.
+
+cp merged_AWIP32.20060227* ../feb27-28_06/
+cp merged_AWIP32.2006022800* ../feb27-28_06/
+ 
+
+mv ../feb_6-7_2006/merged_AWIP32.* .
+NARR/feb6-28_06> mv ../feb_7-8_2006/merged_AWIP32.* .
+NARR/feb6-28_06> mv ../feb6-8_06/merged_AWIP32.* .
+NARR/feb6-28_06> mv ../feb_8-9_2006/merged_AWIP32.* .
+NARR/feb6-28_06> mv ../feb_9-10_2006/merged_AWIP32.* .
+NARR/feb6-28_06> mv ../feb10-11_2006/merged_AWIP32.* .
+NARR/feb6-28_06> mv ../feb11-12_2006/merged_AWIP32.* .
+NARR/feb6-28_06> mv ../feb12-13_2006/merged_AWIP32.* .
+NARR/feb6-28_06> mv ../feb13-14_2006/merged_AWIP32.* .
+NARR/feb6-28_06> mv ../feb13-14_06/merged_AWIP32.* .
+NARR/feb6-28_06> mv ../feb14-15_06/merged_AWIP32.* .
+NARR/feb6-28_06> mv ../feb15-16_06/merged_AWIP32.* .
+NARR/feb6-28_06> mv ../feb16-17_06/merged_AWIP32.* .
+NARR/feb6-28_06> mv ../feb17-18_06/merged_AWIP32.* .
+NARR/feb6-28_06> mv ../feb18-19_06/merged_AWIP32.* .
+NARR/feb6-28_06> mv ../feb19-20_06/merged_AWIP32.* .
+NARR/feb6-28_06> mv ../feb20-21_06/merged_AWIP32.* .
+NARR/feb6-28_06> mv ../feb21-28_06/merged_AWIP32.* .
+
+ls -atl $SCRATCH/NARR/feb1-28_06/ | more
+ls -atl $SCRATCH/NARR/nov1-30_08/ | more
+ls -atl $SCRATCH/NARR/nov1-30_09 | more
+chmod -R ugo+rwx $SCRATCH/NARR/nov1-30_09/ &
+chmod -R ugo+rwx $SCRATCH/NARR/nov1-30_08/ &
+chmod -R ugo+rwx $SCRATCH/NARR/feb1-28_06/ &
+chmod -R ugo+rwx /global/u2/y/yashar/hopper/WRF/WPS &
+cd /global/u2/y/yashar/hopper/WRF/WPS
+ln -sf ungrib/Variable_Tables/Vtable.NARR Vtable    # When working with NARR data
+rm NARRFIX:1979-11-08_00 &
+rm GRIBFILE.* &
+rm geo_em.d*.nc & # if/as necessary
+rm geogrid.log.* &
+rm metgrid.log.* &
+
+#If necessary and you haven't done so already
+cd $SCRATCH/NARR
+wget ftp://ftp.cpc.ncep.noaa.gov/wd51we/NARR/rr-fixed.grb
+cd $HOME/hopper/WRF/WPS
+# You might also need to:   module unload hdf5/1.8.8
+./link_grib.csh $SCRATCH/NARR/rr-fixed.grb
+ls -alt | more
+
+GRIBFILE.AAA -> /scratch/scratchdirs/yashar/NARR/rr-fixed.grb
+Vtable -> ungrib/Variable_Tables/Vtable.NARR
+
+# Edit namelist.wps
+emacs namelist.wps &
+# start_date = '1979-11-08_00:00:00', '1979-11-08_00:00:00',
+# end_date   = '1979-11-08_00:00:00', '1979-11-08_00:00:00',
+# &ungrib: prefix = 'NARRFIX'
+# ! prefix = '/scratch/scratchdirs/yashar/NARR/feb1-28_06/NARR',
+# ! prefix = '/scratch/scratchdirs/yashar/NARR/nov1-30_08/NARR',
+./ungrib.exe >& ungrib_NARRFIX_data.log
+ls -atl | more
+# RESULT: NARRFIX:1979-11-08_00
+./link_grib.csh $SCRATCH/NARR/feb1-28_06/merged_AWIP32.200602
+./link_grib.csh $SCRATCH/NARR/nov1-30_08/merged_AWIP32.200811
+./link_grib.csh $SCRATCH/NARR/nov1-30_09/merged_AWIP32.200911
+ls -atl | more
+RESULT: lrwxrwxrwx  1 yashar yashar       75 2013-02-15 18:23 GRIBFILE.AZV -> /scratch/scratchdirs/yashar/NARR/feb1-28_06/merged_AWIP32.2006022821.RS.sfc
+drwxrwxrwx 14 yashar yashar   131072 2013-02-15 18:23 .
+lrwxrwxrwx  1 yashar yashar       75 2013-02-15 18:23 GRIBFILE.AZU -> /scratch/scratchdirs/yashar/NARR/feb1-28_06/merged_AWIP32.2006022821.RS.flx
+lrwxrwxrwx  1 yashar yashar       71 2013-02-15 18:23 GRIBFILE.AZT -> /scratch/scratchdirs/yashar/NARR/feb1-28_06/merged_AWIP32.2006022821.3D
+lrwxrwxrwx  1 yashar yashar       75 2013-02-15 18:23 GRIBFILE.AZS -> /scratch/scratchdirs/yashar/NARR/feb1-28_06/merged_AWIP32.2006022818.RS.sfc
+lrwxrwxrwx  1 yashar yashar       75 2013-02-15 18:23 GRIBFILE.AZR -> /scratch/scratchdirs/yashar/NARR/feb1-28_06/merged_AWIP32.2006022818.RS.flx
+lrwxrwxrwx  1 yashar yashar       71 2013-02-15 18:23 GRIBFILE.AZQ -> /scratch/scratchdirs/yashar/NARR/feb1-28_06/merged_AWIP32.2006022818.3D
+lrwxrwxrwx  1 yashar yashar       75 2013-02-15 18:23 GRIBFILE.AZP -> /scratch/scratchdirs/yashar/NARR/feb1-28_06/merged_AWIP32.2006022815.RS.sfc
+lrwxrwxrwx  1 yashar yashar       75 2013-02-15 18:23 GRIBFILE.AZO -> /scratch/scratchdirs/yashar/NARR/feb1-28_06/merged_AWIP32.2006022815.RS.flx
+lrwxrwxrwx  1 yashar yashar       71 2013-02-15 18:23 GRIBFILE.AZN -> /scratch/scratchdirs/yashar/NARR/feb1-28_06/merged_AWIP32.2006022815.3D
+lrwxrwxrwx  1 yashar yashar       75 2013-02-15 18:23 GRIBFILE.AZM -> /scratch/scratchdirs/yashar/NARR/feb1-28_06/merged_AWIP32.2006022812.RS.sfc
+lrwxrwxrwx  1 yashar yashar       75 2013-02-15 18:23 GRIBFILE.AZL -> /scratch/scratchdirs/yashar/NARR/feb1-28_06/merged_AWIP32.2006022812.RS.flx
+......
+
+rm $SCRATCH/NARR/feb1-28_06/NARR*
+rm $SCRATCH/NARR/nov1-30_08/NARR*
+rm $SCRATCH/NARR/nov1-30_09/NARR*
+# Edit namelist.wps again
+# ! start_date = '1979-11-08_00:00:00', '1979-11-08_00:00:00',
+# ! end_date   = '1979-11-08_00:00:00', '1979-11-08_00:00:00',
+# start_date = '2006-02-01_00:00:00', '2006-02-01_00:00:00',
+# end_date   = '2006-02-28_00:00:00', '2006-02-28_00:00:00',
+# start_date = '2008-11-22_00:00:00','2008-11-25_00:00:00'
+# end_date = '2008-11-29_00:00:00','2008-11-29_00:00:00'
+ #  &ungrib: prefix = '/scratch/scratchdirs/yashar/NARR/feb1-28_06/NARR',
+# prefix = '/scratch/scratchdirs/yashar/NARR/nov1-30_08/NARR',
+#  ! prefix = 'NARRFIX'
+./ungrib.exe >& ungrib_NARR_feb1-28_06.log
+./ungrib.exe >& ungrib_NARR_nov6-9_08_jm_slc.log
+./ungrib.exe >& ungrib_NARR_nov1-30_09_jm_slc.log
+tail -45 ungrib_NARR_feb1-28_06.log 
+tail -45 ungrib_NARR_nov6-9_08_jm_slc.log
+tail -45 ungrib_NARR_nov22-29_08_jm_slc.log 
+# NARR:2006-02-* files created in $SCRATCH/NARR/feb1-28_06/ directory.
+ls -atl $SCRATCH/NARR/feb1-28_06/ | more
+ls -atl $SCRATCH/NARR/nov1-30_08/ | more
+ls -atl $SCRATCH/NARR/nov1-30_09/ | more
+-rw-------  1 yashar yashar  62683632 2013-02-15 18:59 NARR:2006-02-28_00
+-rw-------  1 yashar yashar  62683632 2013-02-15 18:59 NARR:2006-02-27_21
+-rw-------  1 yashar yashar  62683632 2013-02-15 18:59 NARR:2006-02-27_18
+-rw-------  1 yashar yashar  62683632 2013-02-15 18:59 NARR:2006-02-27_15
+.
+.
+-rw-------  1 yashar yashar  62683632 2013-02-15 18:51 NARR:2006-02-01_06
+-rw-------  1 yashar yashar  62683632 2013-02-15 18:51 NARR:2006-02-01_03
+-rw-------  1 yashar yashar  62683632 2013-02-15 18:51 NARR:2006-02-01_00
+
+chmod -R ugo+rwx $SCRATCH/NARR/feb1-28_06/ &
+chmod -R ugo+rwx $SCRATCH/NARR/nov1-30_08/ &
+chmod -R ugo+rwx $SCRATCH/NARR/nov1-30_09/ & 
+rm geogrid.log.*
+qsub geogrid_batch_2way_nested_angelo_coast
+qsub geogrid_batch_1way_nested_jm_slc
+qstat -u yashar
+tail -45 geogrid.log.0000
+ls -alt *.nc
+# RESULT:
+# -rwxrwxrwx 1 yashar yashar 1969468 2013-02-15 19:24 geo_em.d02.nc
+# -rwxrwxrwx 1 yashar yashar 1729180 2013-02-15 19:24 geo_em.d01.nc
+chmod ugo+rwx *.nc &
+ncview geo_em.d01.nc &
+# Can also plot these geogrid files with ferret.
+rm metgrid.log.*
+rm /scratch/scratchdirs/yashar/NARR/feb1-28_06/met_em*.nc
+rm /scratch/scratchdirs/yashar/NARR/nov1-30_08/met_em*.nc # if necessary
+rm /scratch/scratchdirs/yashar/NARR/nov1-30_09/met_em*.nc 
+# make sure namelist.wps includes the following:
+# &metgrid: fg_name = '/scratch/scratchdirs/yashar/NARR/feb1-28_06/NARR'
+# opt_output_from_metgrid_path = '/scratch/scratchdirs/yashar/NARR/feb1-28_06'
+
+# fg_name = '/scratch/scratchdirs/yashar/NARR/nov1-30_08/NARR',
+# opt_output_from_metgrid_path = '/scratch/scratchdirs/NARR/nov1-30_08/'
+
+rm geogrid.log.*
+rm metgrid.log.*
+unlimit
+limit stacksize unlimited
+chmod -R ugo+rwx /scratch/scratchdirs/yashar/NARR/nov1-30_09/ &
+chmod -R ugo+rwx /global/u2/y/yashar/hopper/WRF/WPS/ &
+qsub metgrid_batch_2way_nested_domain_angelo_coast
+qsub metgrid_batch_nested_jm_slc
+qstat -u yashar
+tail -45 metgrid.log.0000
+ls -atl /scratch/scratchdirs/yashar/NARR/feb1-28_06 | more
+ls -atl /scratch/scratchdirs/yashar/NARR/nov1-30_08 | more
+ncdump -h /scratch/scratchdirs/yashar/NARR/feb1-28_06/met_em.d02.2006-02-28_00:00:00.nc | more
+ncdump -h /scratch/scratchdirs/yashar/NARR/nov1-30_08/met_em.d02.2008-11-27_00:00:00.nc | more
+chmod -R ugo+rwx /scratch/scratchdirs/yashar/NARR/feb1-28_06 
+chmod -R ugo+rwx /scratch/scratchdirs/yashar/NARR/nov1-30_08 &
+chmod -R ugo+rwx /scratch/scratchdirs/yashar/NARR/nov1-30_09 &
+# Run WRF-VPRM3 real.exe using the met_em.d0*.nc files that were just created.
+# IT LOOKS LIKE I CAN PROBABLY SKIP THIS STEP NOW   .... or maybe not?
+# NO, THIS STEP SHOULD PROBABLY NOT BE SKIPPED ....
+# Then, copy the output (wrfinput_d0* and wrfbdy_d01) to 
+# $SCRATCH/wrfinput_real_ghg_temp/ 
+chmod -R ugo+rwx $GSCRATCH2/WRF-VPRM3/test/em_real/ &
+cp namelist.input_SLC_jm $GSCRATCH2/WRF-VPRM3/test/em_real/
+cd $GSCRATCH2/WRF-VPRM3/test/em_real/
+
+
+
+# Edit the namelist.input file in this directory, e.g.,: 
+emacs namelist.input &
+ &time_control
+ run_days                            = 27,
+ run_hours                           = 00,
+ run_minutes                         = 0,
+ run_seconds                         = 0,
+ start_year                          = 2006, 2006, 2999,
+ start_month                         = 02,   02,   06,
+ start_day                           = 01,   01,   11,
+ start_hour                          = 00,   00,   12,
+ start_minute                        = 00,   00,   00,
+ start_second                        = 00,   00,   00,
+ end_year                            = 2006, 2006, 2999,
+ end_month                           = 02,   02,   06,
+ end_day                             = 28,   28,   12,
+ auxinput1_inname                    = "$SCRATCH/NARR/feb1-28_06/met_em.d<domain>.<date>"
+frames_per_outfile                  = 24, 24, 1000,
+restart                             = .false.,
+restart_interval                    = 1440,
+&chem
+  chem_opt                           = 99,       99,
+ kemit                               = 35 or 1,      # think about setting this to 1 
+
+rm wrf*_d0*   # as/if necessary
+rm rsl.*
+unlimit
+limit stacksize unlimited
+qsub real_batch_angelo_coast_vprm
+qstat -u yashar
+tail -45 rsl.out.0000
+tail -45 rsl.error.0000
+chmod -R ugo+rwx $SCRATCH/WRF-VPRM3/test/em_real/ &
+ls -atl | more
+ncdump -v "Times" wrfinput_d01 
+ncdump -v "Times" wrfinput_d02
+ncdump -v "Times" wrfbdy_d01
+# Working on using VPRMpreproc and Matlab tools
+# to further modify wrfinput* and wrfbdy_d01
+# after the above steps to enable biogenic emissions
+# to be input into WRF model .... 
+
+# Here, use Matlab scripts to modify wrfinput* and wrfbdy_d01.
+cp wrfinput_d01 $GSCRATCH2/wrf_jm_slc/ &
+cp wrfinput_d02 $GSCRATCH2/wrf_jm_slc/ &
+cp wrfbdy_d01 $GSCRATCH2/wrf_jm_slc/ &
+
+chmod -R ugo+rwx $SCRATCH/wrfinput_real_ghg_temp/ 
+rm $SCRATCH/wrfinput_real_ghg_temp/wrf*_d0*
+# Should probably rename the wrf*_d0* files after 
+# they've been used, since they take so long to create.
+cp wrfinput_d0* $SCRATCH/wrfinput_real_ghg_temp/ &
+cp wrfbdy_d01 $SCRATCH/wrfinput_real_ghg_temp/ &   
+#or:
+cp wrfinput_d01 /global/u2/y/yashar/hopper/WRF/WRFV3-Chem-3.4/test/em_real/ &
+cp wrfinput_d02 /global/u2/y/yashar/hopper/WRF/WRFV3-Chem-3.4/test/em_real/ &
+cp wrfbdy_d01 /global/u2/y/yashar/hopper/WRF/WRFV3-Chem-3.4/test/em_real/ &
+
+#or:
+
+
+# This may not be necessary, depending on the set-up
+chmod -R ugo+rwx $SCRATCH/wrfinput_real_ghg_temp/ 
+chmod -R ugo+rwx /global/u2/y/yashar/hopper/WRF/WRFV3-Chem-3.4/
+cd $HOME/hopper/WRF/WRFV3-Chem-3.4/test/em_real/
+ls -atl wrf*_d0* 
+rm wrf*_d0*
+cp $SCRATCH/wrfinput_real_ghg_temp/wrfinput_d01 .
+cp $SCRATCH/wrfinput_real_ghg_temp/wrfinput_d02 .
+cp $SCRATCH/wrfinput_real_ghg_temp/wrfbdy_d01 .
+ncdump -v "Times" wrfinput_d01 
+ncdump -v "Times" wrfinput_d02
+ncdump -v "Times" wrfbdy_d01
+
+
+# edit namelist.input as necessary with correct times and turn chem 'off' 
+# here and comment out auxinput5_inname and auxinput15_inname lines).
+chmod -R ugo+rwx /global/u2/y/yashar/hopper/WRF/WRFV3-Chem-3.4/
+emacs namelist.input &
+# Remember, we may also want to create re-start files here:
+frames_per_outfile                  = 24,   24, 1000,
+restart                             = .false.,
+restart_interval                    = 1440,
+...
+chem_opt =0,
+
+rm rsl.*
+rm wrfout*
+rm /scratch/scratchdirs/yashar/NARR/feb1-28_06/wrfout_*
+chmod -R ugo+rwx /scratch/scratchdirs/yashar/NARR/feb1-28_06/
+rm wrfrst*
+unlimit
+limit stacksize unlimited
+qsub wrf_batch_angelo_coast_tracer
+qstat -u yashar
+tail -45 rsl.out.0000 
+ls -atl $SCRATCH/NARR/feb1-28_06/wrfout* | more
+ls -at $SCRATCH/NARR/feb1-28_06/wrf*d01_2006* | more
+ls -atl $SCRATCH/NARR/nov1-30_08/wrfout* | more
+mv wrfrst* $SCRATCH/NARR/feb1-28_06/rerstart_output/
+# Some further experimentation with restart,
+# and some unexpected files were created, e.g.,
+wrfout_d01_2006-02-25_01:00:00
+wrfout_d01_2006-02-24_01:00:00
+wrfout_d01_2006-02-23_01:00:00
+wrfout_d01_2006-02-22_01:00:00
+wrfout_d01_2006-02-21_01:00:00
+wrfout_d01_2006-02-20_01:00:00
+wrfout_d01_2006-02-19_01:00:00
+wrfout_d01_2006-02-18_01:00:00
+wrfout_d01_2006-02-17_01:00:00
+wrfout_d01_2006-02-16_01:00:00
+wrfout_d02_2006-02-18_12:00:00
+wrfout_d01_2006-02-18_13:00:00
+wrfout_d01_2006-02-17_13:00:00
+wrfout_d02_2006-02-17_12:00:00
+wrfout_d01_2006-02-16_13:00:00
+wrfout_d02_2006-02-16_12:00:00
+
+wrfrst_d02_2006-02-27_00:00:00
+wrfrst_d01_2006-02-27_00:00:00
+wrfrst_d02_2006-02-16_12:00:00
+wrfrst_d01_2006-02-16_12:00:00
+
+
+# So, kind of gave up with restart for now but
+# needed to add the following line to namelist.input
+# to deal with disk space problems:
+
+history_outname                     = "/scratch/scratchdirs/yashar/NARR/feb1-28_06/wrfout_d<domain>_<date>",
+
+# Example output:
+wrfrst_d01_2006-02-09_00:00:00  
+wrfout_d01_2006-02-07_00:00:00
+wrfout_d01_2006-02-09_00:00:00  
+wrfrst_d01_2006-02-07_00:00:00
+wrfout_d01_2006-02-08_00:00:00  
+wrfout_d01_2006-02-06_00:00:00
+wrfrst_d01_2006-02-08_00:00:00
+
+ncdump -v "Times" wrfout_d01_2006-02-20_00:00:00 
+ncdump -v "Times" wrfout_d02_2006-02-20_00:00:00 
+#or
+ncdump -v Times /scratch/scratchdirs/yashar/NARR/feb1-28_06/wrfout_d01_2006-02-01_00:00:00
+ncdump -v Times /scratch/scratchdirs/yashar/NARR/feb1-28_06/wrfout_d02_2006-02-01_00:00:00
+
+ls -alt $SCRATCH/wrfoutput_input_chem-3.4_8_09_12/
+rm $SCRATCH/wrfoutput_input_chem-3.4_8_09_12/wrfout_d0*_2006*
+rm $SCRATCH/wrfoutput_input_chem-3.4_8_09_12/wrfout_d0*_2008*
+chmod -R ugo+rwx $SCRATCH/wrfoutput_input_chem-3.4_8_09_12/ 
+mv wrfout* $SCRATCH/wrfoutput_input_chem-3.4_8_09_12/
+mv wrfrst* $SCRATCH/wrfoutput_input_chem-3.4_8_09_12/
+#or
+mv /scratch/scratchdirs/yashar/NARR/feb1-28_06/wrfout* $SCRATCH/wrfoutput_input_chem-3.4_8_09_12/ 
+mv /scratch/scratchdirs/yashar/NARR/nov1-30_08/wrfout* $SCRATCH/wrfoutput_input_chem-3.4_8_09_12/
+
+chmod -R ugo+rwx $SCRATCH/wrfoutput_input_chem-3.4_8_09_12/ 
+ls -at $SCRATCH/wrfoutput_input_chem-3.4_8_09_12/ | more
+ncdump -h $SCRATCH/wrfoutput_input_chem-3.4_8_09_12/wrfout_d02_2006-02-01_00:00:00 | grep CO2 | more
+# edit edgar_accum_new10.r as necessary (for nested domains, etc.). Remember, this needs to be run separately for both domains. It also needs to be run separately for each of the
+# wrfout* files for each day of the simulation. Then, all of
+# the resulting amazon* files need to be combined together
+# with ncrcat at the end. 
+ls -atl CO2_*_d0* | more 
+# If necessary, also do a:
+rm CO2_*_d0*
+
+module load R
+emacs edgar41_accum_acrr.r &
+# I created a for loop for the date, so hopefully this will
+# speed things up.
+nohup R CMD BATCH edgar41_accum_acrr_test.r edgar41_accum_acrr_test.log
+nohup R CMD BATCH edgar41_accum_jm_slc_test1.r edgar41_accum_jm_slc_test1.log
+# nohup R CMD BATCH edgar41_accum_acrr.r edgar41_accum_acrr.log
+tail -15 edgar41_accum_acrr_test.log
+tail -15  edgar41_accum_jm_slc_test1.log
+chmod -R ugo+rwx /global/u2/y/yashar/hopper/WRF/WRFV3-Chem-3.4/
+ls -atl CO2_*_d0* | more 
+# The final output should be:
+CO2_biogenic_2_8_06_d01  
+CO2_biogenic_2_7_06_d01  
+CO2_biogenic_2_6_06_d01
+CO2_anthro_2_8_06_d01    
+CO2_anthro_2_7_06_d01    
+CO2_anthro_2_6_06_d01
+CO2_biogenic_2_7_06_d02  
+CO2_biogenic_2_6_06_d02
+CO2_anthro_2_7_06_d02    
+CO2_anthro_2_6_06_d02
+
+# and during another run I got:
+
+CO2_anthro_02-06_2006_d01
+CO2_biogenic_02-06_2006_d01
+CO2_anthro_02-06_2006_d02
+CO2_biogenic_02-06_2006_d02
+CO2_anthro_02-07_2006_d01
+CO2_biogenic_02-07_2006_d01
+CO2_anthro_02-07_2006_d02
+CO2_biogenic_02-07_2006_d02
+CO2_anthro_02-08_2006_d02
+CO2_biogenic_02-08_2006_d02
+CO2_anthro_02-09_2006_d02
+CO2_biogenic_02-09_2006_d02
+CO2_anthro_02-09_2006_d01
+CO2_biogenic_02-09_2006_d01
+CO2_anthro_02-08_2006_d01
+CO2_biogenic_02-08_2006_d01
+CO2_anthro_02-10_2006_d01
+CO2_biogenic_02-10_2006_d01
+CO2_anthro_02-10_2006_d02
+CO2_biogenic_02-10_2006_d02
+CO2_anthro_02-11_2006_d01
+
+ncdump -h CO2_anthro_02-03_2006_d01
+ncdump -v Times CO2_anthro_02-03_2006_d01
+
+# etc...
+
+ncrcat CO2_anthro_02_06_2006_d01 CO2_anthro_02_07_2006_d01 CO2_anthro_02_08_2006_d01 CO2_anthro_02_09_2006_d01 CO2_anthro_02_10_2006_d01 CO2_anthro_02_11_2006_d01 CO2_anthro_02_12_2006_d01 CO2_anthro_02_13_2006_d01 CO2_anthro_02_14_2006_d01 CO2_anthro_02_15_2006_d01 CO2_anthro_02_16_2006_d01 CO2_anthro_02_17_2006_d01 CO2_anthro_02_18_2006_d01 CO2_anthro_02_19_2006_d01 CO2_anthro_02_20_2006_d01 CO2_anthro_02_21_2006_d01 CO2_anthro_02_22_2006_d01 CO2_anthro_23_06_2006_d01 CO2_anthro_02_24_2006_d01 CO2_anthro_02_25_2006_d01 CO2_anthro_02_26_2006_d01 CO2_anthro_02_27_2006_d01 CO2_anthro_02_06-27_2006_d01
+
+ncrcat CO2_anthro_02_06_2006_d02 CO2_anthro_02_07_2006_d02 CO2_anthro_02_08_2006_d02 CO2_anthro_02_09_2006_d02 CO2_anthro_02_10_2006_d02 CO2_anthro_02_11_2006_d02 CO2_anthro_02_12_2006_d02 CO2_anthro_02_13_2006_d02 CO2_anthro_02_14_2006_d02 CO2_anthro_02_15_2006_d02 CO2_anthro_02_16_2006_d02 CO2_anthro_02_17_2006_d02 CO2_anthro_02_18_2006_d02 CO2_anthro_02_19_2006_d02 CO2_anthro_02_20_2006_d02 CO2_anthro_02_21_2006_d02 CO2_anthro_02_22_2006_d02 CO2_anthro_23_06_2006_d02 CO2_anthro_02_24_2006_d02 CO2_anthro_02_25_2006_d02 CO2_anthro_02_26_2006_d02 CO2_anthro_02_27_2006_d02 CO2_anthro_02_06-27_2006_d02
+
+ncrcat CO2_biogenic_02_06_2006_d01 CO2_biogenic_02_07_2006_d01 CO2_biogenic_02_08_2006_d01 CO2_anthro_02_09_2006_d01 CO2_anthro_02_10_2006_d01 CO2_anthro_02_11_2006_d01 CO2_anthro_02_12_2006_d01 CO2_anthro_02_13_2006_d01 CO2_anthro_02_14_2006_d01 CO2_anthro_02_15_2006_d01 CO2_anthro_02_16_2006_d01 CO2_anthro_02_17_2006_d01 CO2_anthro_02_18_2006_d01 CO2_anthro_02_19_2006_d01 CO2_anthro_02_20_2006_d01 CO2_anthro_02_21_2006_d01 CO2_anthro_02_22_2006_d01 CO2_anthro_23_06_2006_d01 CO2_anthro_02_24_2006_d01 CO2_anthro_02_25_2006_d01 CO2_anthro_02_26_2006_d01 CO2_anthro_02_27_2006_d01 CO2_anthro_02_06-27_2006_d01
+
+ncrcat CO2_anthro_02_06_2006_d02 CO2_anthro_02_07_2006_d02 CO2_anthro_02_08_2006_d02 CO2_anthro_02_09_2006_d02 CO2_anthro_02_10_2006_d02 CO2_anthro_02_11_2006_d02 CO2_anthro_02_12_2006_d02 CO2_anthro_02_13_2006_d02 CO2_anthro_02_14_2006_d02 CO2_anthro_02_15_2006_d02 CO2_anthro_02_16_2006_d02 CO2_anthro_02_17_2006_d02 CO2_anthro_02_18_2006_d02 CO2_anthro_02_19_2006_d02 CO2_anthro_02_20_2006_d02 CO2_anthro_02_21_2006_d02 CO2_anthro_02_22_2006_d02 CO2_anthro_23_06_2006_d02 CO2_anthro_02_24_2006_d02 CO2_anthro_02_25_2006_d02 CO2_anthro_02_26_2006_d02 CO2_anthro_02_27_2006_d02 CO2_anthro_02_06-27_2006_d02
+
+# or, probably a better way:
+
+sh ncrcat_CO2_emission_edg41.sh
+
+# So, following resulting files have been created:
+CO2_biogenic_02_01-27_2006_d02
+CO2_biogenic_02_01-27_2006_d01
+CO2_anthro_02_01-27_2006_d02
+CO2_anthro_02_01-27_2006_d01
+
+ 
+ncrcat CO2_anthro_2_6_06_d02 CO2_anthro_2_7_06_d02 CO2_anthro_2_8_06_d02 CO2_anthro_2_6-8_06_d02
+
+ncrcat CO2_biogenic_2_6_06_d01 CO2_biogenic_2_7_06_d01 CO2_biogenic_2_8_06_d01 CO2_biogenic_2_6-8_06_d01
+
+ncrcat CO2_biogenic_2_6_06_d02 CO2_biogenic_2_7_06_d02 CO2_biogenic_2_8_06_d02 CO2_biogenic_2_6-8_06_d02
+
+# So, following resulting files have been created:
+ls -atl CO2*d0*
+CO2_anthro_2_6-8_06_d01    
+CO2_biogenic_2_6-8_06_d02
+CO2_biogenic_2_6-8_06_d01  
+CO2_anthro_2_6-8_06_d02
+
+ncdump -v "Times" CO2_anthro_2_6-8_06_d01 
+ncdump -v "Times" CO2_anthro_2_6-8_06_d02
+ncdump -v "Times" CO2_biogenic_2_6-8_06_d01
+ncdump -v "Times" CO2_biogenic_2_6-8_06_d02
+
+# now turn chemistry back on in namelist.input and comment auxinput5_*
+# & 15 lines back in. Make sure max_dom=2 !
+emacs namelist.input &
+ frames_per_outfile                  = 72,   72, 1000,
+ restart                             = .false.,
+ restart_interval                    = 2880,
+ frames_per_auxinput5                = 72, 72
+ auxinput15_inname 		     = "CO2_biogenic_2_1-28_06_d<domain>",
+ frames_per_auxinput15               = 72,72
+ .
+ .
+  ! chem_opt                          = 0,
+ chem_opt                            = 17,       17,
+ emi_inname                          = 'CO2_anthro_2_1-28_06_d<domain>',
+
+rm rsl.*
+rm wrf*_d0*  # Think about this. Experiment with not doing this (again?)
+unlimit
+limit stacksize unlimited
+qsub real_batch_angelo_coast_nochem
+qstat -u yashar
+tail -45 rsl.out.0000
+ls -atl wrf*_d0*
+ncdump -v "Times" wrfinput_d01
+ncdump -v "Times" wrfinput_d02
+ncdump -v "Times" wrfbdy_d01
+ncdump -h wrflowinp_d01
+ncdump -h wrflowinp_d02
+ncdump -h wrfinput_d01 | grep CO2 | more
+ncdump -v CO2_ANT wrfinput_d01 | more
+ncdump -h wrfbdy_d01 | grep CO2 | more 
+chmod -R ugo+rwx /global/u2/y/yashar/hopper/WRF/WRFV3-Chem-3.4/
+rm rsl.*
+rm /scratch/scratchdirs/yashar/NARR/feb1-28_06/wrfout*    # Think about this. Experiment with not doing this (again?) 
+rm /scratch/scratchdirs/yashar/NARR/nov1-30_08/wrfout* 
+rm wrfrst*  # Think about this in regards to dealing with restart (warm start).
+unlimit
+limit stacksize unlimited
+qsub wrf_batch_angelo_coast_tracer
+qstat -u yashar
+tail -45 rsl.out.0000
+ls -atl /scratch/scratchdirs/yashar/NARR/feb1-28_06/wrfout* | more 
+
+ncdump -v "Times" /scratch/scratchdirs/yashar/NARR/feb1-28_06/wrfout_d01_2006-02-01_00:00:00 | more 
+ncdump -v "Times" /scratch/scratchdirs/yashar/NARR/feb1-28_06/wrfout_d02_2006-02-01_00:00:00
+ncdump -h /scratch/scratchdirs/yashar/NARR/feb1-28_06/wrfout_d01_2006-02-01_00:00:00 | more
+ncdump -h /scratch/scratchdirs/yashar/NARR/feb1-28_06/wrfout_d02_2006-02-01_00:00:00 | more
+ncdump -h /scratch/scratchdirs/yashar/NARR/feb1-28_06/wrfout_d01_2006-02-01_00:00:00 | grep CO2 | more
+ncdump -v "CO2_BIO"  /scratch/scratchdirs/yashar/NARR/feb1-28_06/wrfout_d01_2006-02-01_00:00:00 | more
+ncdump -v "CO2_ANT"  /scratch/scratchdirs/yashar/NARR/feb1-28_06/wrfout_d01_2006-02-01_00:00:00 | more
+
+
+ncdump -v "Times" wrfout_d01_2006-02-06_00:00:00
+ncdump -v "Times" wrfout_d02_2006-02-06_00:00:00
+ncdump -v "Times" wrfout_d01_2006-02-09_00:00:00
+ncdump -v "Times" wrfout_d02_2006-02-09_00:00:00
+rm rsl.*
+
+# mv wrfout_d01_2006-02-06_00:00:00 $SCRATCH/wrf_in_out_co2tr_trial1/wrfout_d01_2006-02-06-08_00:00:00.nc
+# mv wrfout_d02_2006-02-06_00:00:00 $SCRATCH/wrf_in_out_co2tr_trial1/wrfout_d02_2006-02-06-08_00:00:00.nc
+
+mv /scratch/scratchdirs/yashar/NARR/feb1-28_06/wrfout_d01_2006-02-01_00:00:00 $SCRATCH/wrf_in_out_co2tr_trial1/wrfout_edg41_d01_2006-02-01-28_00:00:00_final.nc
+
+mv /scratch/scratchdirs/yashar/NARR/feb1-28_06/wrfout_d02_2006-02-01_00:00:00 $SCRATCH/wrf_in_out_co2tr_trial1/wrfout_edg41_d02_2006-02-01-28_00:00:00_final.nc
+
+chmod -R ugo+rwx  $SCRATCH/wrf_in_out_co2tr_trial1
+
+mv wrfinput_d01 $SCRATCH/wrf_in_out_co2tr_trial1/wrfinput_edg41_d01_02_1-28_2006_final
+mv wrfinput_d02 $SCRATCH/wrf_in_out_co2tr_trial1/wrfinput_edg41_d02_02_1-28_2006_final
+mv wrfbdy_d01 $SCRATCH/wrf_in_out_co2tr_trial1/wrfbdy_edg41_d01_02_1-28_2006_final 
+
+
+mv CO2_anthro_02_01-27_2006_edg41_d01 $SCRATCH/wrf_in_out_co2tr_trial1/
+mv CO2_anthro_02_01-27_2006_edg41_d02 $SCRATCH/wrf_in_out_co2tr_trial1/ 
+mv CO2_biogenic_02_01-27_2006_edg41_d01 $SCRATCH/wrf_in_out_co2tr_trial1/
+mv CO2_biogenic_02_01-27_2006_edg41_d02 $SCRATCH/wrf_in_out_co2tr_trial1/ 
+
+cd /scratch/scratchdirs/yashar/NARR/feb1-28_06
+ncdump -v Times wrfout_d01_2006-02-01_00:00:00
+ncdump -v Times wrfout_d02_2006-02-01_00:00:00
+ncdump -v Times wrfout_d01_2006-02-28_00:00:00
+ncdump -v Times wrfout_d02_2006-02-28_00:00:00
+ncrcat wrfout_d01_2006-02-06_00:00:00 wrfout_d01_2006-02-28_00:00:00 wrfout_d01_2006-02_01-28_00:00:00.nc &
+ncrcat wrfout_d02_2006-02-06_00:00:00 wrfout_d02_2006-02-28_00:00:00 wrfout_d02_2006-02_01-28_00:00:00.nc &
+mv wrfout_d0*_2006-02_06-28_00:00:00.nc $SCRATCH/wrf_in_out_co2tr_trial1/  
+mv wrflowinp_d01 $SCRATCH/wrf_in_out_co2tr_trial1/wrflowinp_d01_2006-02-05_00:00:00_2way_nested.nc
+mv wrflowinp_d02 $SCRATCH/wrf_in_out_co2tr_trial1/wrflowinp_d02_2006-02-05_00:00:00_2way_nested.nc
+
+cd $SCRATCH/wrf_in_out_co2tr_trial1/
+emacs ferret_script_lat_lon_co2_d01_2.txt &     
+emacs ferret_script_co2_time_series_d01-2.txt &
+
+# Ferret
+module load ferret
+ferret
+use wrfout_d01_2006-02-06-08_00:00:00.nc
+show data
+
+1> ./wrfout_d01_2006-02-06-08_00:00:00.nc  (default)
+ name     title                             I         J         K         L
+
+ CO2_ANT                                   1:59      1:59      1:34      1:72
+ CO2_BIO                                   1:59      1:59      1:34      1:72
+ CO2_OCE                                   1:59      1:59      1:34      1:72
+ CO2_BCK                                   1:59      1:59      1:34      1:72
+ CO2_TST                                   1:59      1:59      1:34      1:72
+ CO2_BBU                                   1:59      1:59      1:34      1:72
+ EBIO_CO2OCE
+ ...
+ EBIO_GEE                                  1:59      1:59      1:1       1:649
+ EBIO_RES                                  1:59      1:59      1:1       1:649
+ ...
+ EVI                                       1:59      1:59      1:8       1:649
+ EVI_MIN                                   1:59      1:59      1:8       1:649
+ EVI_MAX                                   1:59      1:59      1:8       1:649
+ LSWI                                      1:59      1:59      1:8       1:649
+ LSWI_MAX                                  1:59      1:59      1:8       1:649
+ LSWI_MIN                                  1:59      1:59      1:8       1:649
+ RAD_VPRM                                  ...       ...       1:8       ...
+ LAMBDA_VPRM
+                                           ...       ...       1:8       ...
+ ALPHA_VPRM
+                                           ...       ...       1:8       ...
+ RESP_VPRM
+
+
+yes? show grid PBLH
+    GRID GDP2
+ name       axis              # pts   start                end
+ WEST_EAST X                   59 r   1                    59
+ SOUTH_NORTH Y                 59 r   1                    59
+ normal    Z
+ TIME      T                   72 r   1                    72
+
+yes? show grid TIMES
+    GRID GDP1
+ name       axis              # pts   start                end
+ normal    X
+ normal    Y
+ normal    Z
+ TIME      T                   72 r   1                    72
+
+yes? list TIMES
+             VARIABLE : TIMES
+             DATA SET :  OUTPUT FROM *             PROGRAM:WRF/CHEM V3.4 MODEL
+             FILENAME : wrfout_d01_2006-02-06-08_00:00:00.nc
+             SUBSET   : 72 points (T)
+ 1    /  1:"2006-02-06_00:00:00"
+ 2    /  2:"2006-02-06_01:00:00"
+ 3    /  3:"2006-02-06_02:00:00"
+ 4    /  4:"2006-02-06_03:00:00"
+ 5    /  5:"2006-02-06_04:00:00"
+ 6    /  6:"2006-02-06_05:00:00"
+ 7    /  7:"2006-02-06_06:00:00"
+ 8    /  8:"2006-02-06_07:00:00"
+ 9    /  9:"2006-02-06_08:00:00"
+ 10   / 10:"2006-02-06_09:00:00"
+ 11   / 11:"2006-02-06_10:00:00"
+ 12   / 12:"2006-02-06_11:00:00"
+ 13   / 13:"2006-02-06_12:00:00"
+ 14   / 14:"2006-02-06_13:00:00"
+ 15   / 15:"2006-02-06_14:00:00"
+ 16   / 16:"2006-02-06_15:00:00"
+ 17   / 17:"2006-02-06_16:00:00"
+ 18   / 18:"2006-02-06_17:00:00"
+ 19   / 19:"2006-02-06_18:00:00"
+ 20   / 20:"2006-02-06_19:00:00"
+ 21   / 21:"2006-02-06_20:00:00"
+ 22   / 22:"2006-02-06_21:00:00"
+ 23   / 23:"2006-02-06_22:00:00"
+ 24   / 24:"2006-02-06_23:00:00"
+ 25   / 25:"2006-02-07_00:00:00"
+ 26   / 26:"2006-02-07_01:00:00"
+ 27   / 27:"2006-02-07_02:00:00"
+ 28   / 28:"2006-02-07_03:00:00"
+ 29   / 29:"2006-02-07_04:00:00"
+ 30   / 30:"2006-02-07_05:00:00"
+ 31   / 31:"2006-02-07_06:00:00"
+ 32   / 32:"2006-02-07_07:00:00"
+ 33   / 33:"2006-02-07_08:00:00"
+ 34   / 34:"2006-02-07_09:00:00"
+ 35   / 35:"2006-02-07_10:00:00"
+ 36   / 36:"2006-02-07_11:00:00"
+ 37   / 37:"2006-02-07_12:00:00"
+ 38   / 38:"2006-02-07_13:00:00"
+ 39   / 39:"2006-02-07_14:00:00"
+ 40   / 40:"2006-02-07_15:00:00"
+ 41   / 41:"2006-02-07_16:00:00"
+ 42   / 42:"2006-02-07_17:00:00"
+ 43   / 43:"2006-02-07_18:00:00"
+ 44   / 44:"2006-02-07_19:00:00"
+ 45   / 45:"2006-02-07_20:00:00"
+ 46   / 46:"2006-02-07_21:00:00"
+ 47   / 47:"2006-02-07_22:00:00"
+ 48   / 48:"2006-02-07_23:00:00"
+ 49   / 49:"2006-02-08_00:00:00"
+ 50   / 50:"2006-02-08_01:00:00"
+ 51   / 51:"2006-02-08_02:00:00"
+ 52   / 52:"2006-02-08_03:00:00"
+ 53   / 53:"2006-02-08_04:00:00"
+ 54   / 54:"2006-02-08_05:00:00"
+ 55   / 55:"2006-02-08_06:00:00"
+ 56   / 56:"2006-02-08_07:00:00"
+ 57   / 57:"2006-02-08_08:00:00"
+ 58   / 58:"2006-02-08_09:00:00"
+ 59   / 59:"2006-02-08_10:00:00"
+ 60   / 60:"2006-02-08_11:00:00"
+ 61   / 61:"2006-02-08_12:00:00"
+ 62   / 62:"2006-02-08_13:00:00"
+ 63   / 63:"2006-02-08_14:00:00"
+ 64   / 64:"2006-02-08_15:00:00"
+ 65   / 65:"2006-02-08_16:00:00"
+ 66   / 66:"2006-02-08_17:00:00"
+ 67   / 67:"2006-02-08_18:00:00"
+ 68   / 68:"2006-02-08_19:00:00"
+ 69   / 69:"2006-02-08_20:00:00"
+ 70   / 70:"2006-02-08_21:00:00"
+ 71   / 71:"2006-02-08_22:00:00"
+ 72   / 72:"2006-02-08_23:00:00"
+
+
+# Plotting HGT
+shade hgt[l=1]
+yes? contour/over xlat[l=1]
+yes? contour/over xlong[l=1]
+
+#Plotting PBLH
+plot pblh[x=35, y=45]
+plot pblh[x=@ave, y=@ave, k=@ave]
+shade pblh[l=2]
+
+# Plotting co2_ant
+plot co2_ant[x=@ave, y=@ave, k=@ave]
+plot co2_ant[x=35, y=45, k=2]
+plot co2_bio[x=35, y=45, k=2]
+
+
+#or 
+
+use wrfout_edg41_d01_2006-02-01_00:00:00_final.nc 
+cancel viewports
+set window 
+set mode meta
+set region/L=2/K=1 
+fill CO2_ANT[k=1,l=2],xlong,xlat
+label 30, 30,0,0,.09 *
+go land_detail black overlay black black black black
+cancel mode meta
+ppl clsplt
+spawn Fprint -p portrait -l cps -o test.ps -R metafile.plt
+spawn ps2pdf test.ps
+spawn mv test.pdf ferret_plot_CO2_edg41_d01_L2_test.pdf
+spawn mv test.ps ferret_plot_CO2_edg41_d01_L2_test.ps
+
+use CO2_anthro_02-01_2006_d01.nc
+cancel viewports
+set window 
+set mode meta
+set region/L=2/K=1 
+fill E_CO2[k=1,l=2]
+label 30, 30,0,0,.09 *
+go land_detail black overlay black black black black
+cancel mode meta
+ppl clsplt
+spawn Fprint -p portrait -l cps -o test.ps -R metafile.plt
+spawn ps2pdf test.ps
+spawn mv test.pdf ferret_plot_CO2_edg41_d01_L2_test.pdf
+spawn mv test.ps ferret_plot_CO2_edg41_d01_L2_test.ps
+
+
+
+#Plotting SWDOWN
+plot swdown[x=@ave, y=@ave, k=@ave]
+yes? plot swdown[x=@ave, y=@ave, k=1]
+yes? plot swdown[x=35, y=45, k=1]
