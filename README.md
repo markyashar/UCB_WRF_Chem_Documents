@@ -4,6 +4,7 @@ This repository contains notes and documents related to my atmospheric modeling 
 02/2012-02/2014
 Postdoctoral Scholar-Employee, University of California, Berkeley (UCB), Department of Earth and Planetary Science, 
 Berkeley, California (CA)
+
 Supervisor: Dr. Inez Fung, Professor of Atmospheric Science; Contributor to the 2007 Nobel Peace Prize awarded to 
 the United Nations Environmental Program (UNEP) Intergovernmental Panel for Climate Change (IPCC)
 
